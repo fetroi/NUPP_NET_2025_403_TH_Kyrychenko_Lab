@@ -1,36 +1,34 @@
-using Cinema.Common.Models;
-using Cinema.Common.Services;
+using Cinema.Common;
 
-Console.WriteLine("=== CRUD DEMO (Cinema: Movies) ===");
-
-var movieService = new InMemoryCrudService<Movie>();
-
-var movie = new Movie
+internal class Program
 {
-    Id = Guid.NewGuid(),
-    Title = "Interstellar",
-    Genre = "Sci-Fi",
-    DurationMinutes = 169,
-    Rating = 8.6
-};
+    private static async Task Main()
+    {
+        var service = new CinemaService();
 
-movieService.Create(movie);
-Console.WriteLine("Movie created");
+        Console.WriteLine("=== Cinema Async CRUD Demo ===");
 
-var loaded = movieService.Read(movie.Id);
-Console.WriteLine($"Read movie: {loaded.Title} | {loaded.Genre} | {loaded.DurationMinutes} min | Rating: {loaded.Rating}");
+        var tasks = Enumerable.Range(1, 10).Select(i =>
+        {
+            var session = new CinemaSession
+            {
+                MovieTitle = $"Movie {i}",
+                StartTime = DateTime.Now.AddHours(i),
+                AvailableSeats = 100 + i
+            };
 
-Console.WriteLine("All movies:");
-foreach (var m in movieService.ReadAll())
-{
-    Console.WriteLine($"- {m.Title} ({m.Genre}), {m.DurationMinutes} min, Rating: {m.Rating}");
+            return service.CreateSessionAsync(session);
+        });
+
+        await Task.WhenAll(tasks);
+
+        Console.WriteLine("Created 10 sessions in parallel.");
+
+        var all = await service.GetAllSessionsAsync();
+        foreach (var s in all)
+            Console.WriteLine(s);
+
+        Console.WriteLine("Done. Press any key to exit.");
+        Console.ReadKey();
+    }
 }
-
-loaded.Rating = 9.0;
-movieService.Update(loaded);
-Console.WriteLine("Movie updated");
-
-movieService.Remove(movie.Id);
-Console.WriteLine("Movie removed");
-
-Console.WriteLine("=== END ===");
